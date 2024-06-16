@@ -1,5 +1,7 @@
 package es.chiteroman.playintegrityfix;
 
+import android.util.Log;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -10,9 +12,11 @@ import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.Date;
 import java.util.Enumeration;
-import java.util.Locale;
+import java.util.LinkedList;
+import java.util.Objects;
 
 public final class CustomKeyStoreSpi extends KeyStoreSpi {
     public static volatile KeyStoreSpi keyStoreSpi = null;
@@ -24,11 +28,24 @@ public final class CustomKeyStoreSpi extends KeyStoreSpi {
 
     @Override
     public Certificate[] engineGetCertificateChain(String alias) {
+        EntryPoint.LOG("GetChain Certificate alias requested: " + alias);
+        Certificate leaf = EntryPoint.retrieve(alias);
+        if (leaf != null) {
+            EntryPoint.LOG("GetChain alias certificates: " + leaf.getType() + " " + leaf.hashCode() + " ");
+            LinkedList<Certificate> certificateList = new LinkedList<>();
 
-        for (StackTraceElement stackTraceElement : Thread.currentThread().getStackTrace()) {
-            if (stackTraceElement.getClassName().toLowerCase(Locale.US).contains("droidguard")) {
-                throw new UnsupportedOperationException();
+            try {
+                if (((X509Certificate) leaf).getSigAlgName().contains("ECDSA")) {
+                    certificateList.addAll((Objects.requireNonNull(EntryPoint.box("ecdsa"))).certificateChain());
+                } else {
+                    certificateList.addAll((Objects.requireNonNull(EntryPoint.box("rsa"))).certificateChain());
+                }
+            } catch (Throwable t) {
+                Log.e("GetChain unable to ", t.toString());
             }
+            certificateList.addFirst(leaf);
+
+            return certificateList.toArray(new Certificate[0]);
         }
 
         return keyStoreSpi.engineGetCertificateChain(alias);

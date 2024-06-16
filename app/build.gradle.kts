@@ -25,6 +25,7 @@ android {
                 excludes += "**/liblog.so"
                 excludes += "**/libdobby.so"
             }
+            resources.excludes.add("META-INF/versions/9/OSGI-INF/MANIFEST.MF")
         }
 
         externalNativeBuild {
@@ -43,6 +44,9 @@ android {
     }
 
     buildTypes {
+        debug {
+            multiDexEnabled = false
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
@@ -66,6 +70,7 @@ android {
 
 dependencies {
     implementation("dev.rikka.ndk.thirdparty:cxx:1.2.0")
+    implementation("org.bouncycastle:bcpkix-jdk18on:1.78.1")
 }
 
 tasks.register("updateModuleProp") {

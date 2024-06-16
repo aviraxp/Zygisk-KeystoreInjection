@@ -13,6 +13,8 @@
 
 #define PIF_JSON_DEFAULT "/data/adb/modules/playintegrityfix/pif.json"
 
+#define KEYBOX_FILE_PATH "/data/adb/keybox.xml"
+
 static std::string DEVICE_INITIAL_SDK_INT, SECURITY_PATCH, ID;
 
 typedef void (*T_Callback)(void *, const char *, const char *, uint32_t);
@@ -137,17 +139,19 @@ public:
             return;
         }
 
-        long dexSize = 0, jsonSize = 0;
+        long dexSize = 0, jsonSize = 0, xmlSize = 0;
 
         int fd = api->connectCompanion();
 
         xread(fd, &dexSize, sizeof(long));
         xread(fd, &jsonSize, sizeof(long));
+        xread(fd, &xmlSize, sizeof(long));
 
         LOGD("Dex file size: %ld", dexSize);
         LOGD("Json file size: %ld", jsonSize);
+        LOGD("Xml file size: %ld", xmlSize);
 
-        if (dexSize < 1 || jsonSize < 1) {
+        if (dexSize < 1 || jsonSize < 1 || xmlSize < 1) {
             close(fd);
             api->setOption(zygisk::DLCLOSE_MODULE_LIBRARY);
             return;
@@ -157,17 +161,23 @@ public:
         xread(fd, dexVector.data(), dexSize);
 
         std::vector<uint8_t> jsonVector;
+        std::vector<uint8_t> xmlVector;
 
         jsonVector.resize(jsonSize);
         xread(fd, jsonVector.data(), jsonSize);
 
+        xmlVector.resize(xmlSize);
+        xread(fd, xmlVector.data(), xmlSize);
+
         close(fd);
 
         json = nlohmann::json::parse(jsonVector, nullptr, false, true);
+        std::string xmlString(xmlVector.begin(), xmlVector.end());
+        xml = xmlString;
     }
 
     void postAppSpecialize(const zygisk::AppSpecializeArgs *args) override {
-        if (dexVector.empty() || json.empty()) return;
+        if (dexVector.empty() || json.empty() || xml.empty()) return;
 
         parseJson();
 
@@ -185,6 +195,7 @@ private:
     JNIEnv *env = nullptr;
     std::vector<uint8_t> dexVector;
     nlohmann::json json;
+    std::string xml;
 
     void parseJson() {
         if (json.contains("DEVICE_INITIAL_SDK_INT")) {
@@ -221,6 +232,11 @@ private:
 
         auto entryPointClass = (jclass) entryClassObj;
 
+        LOGD("receive xml");
+        auto receiveXml = env->GetStaticMethodID(entryPointClass, "receiveXml", "(Ljava/lang/String;)V");
+        auto xmlString = env->NewStringUTF(xml.c_str());
+        env->CallStaticVoidMethod(entryPointClass, receiveXml, xmlString);
+
         LOGD("call init");
         auto entryInit = env->GetStaticMethodID(entryPointClass, "init", "(Ljava/lang/String;)V");
         auto str = env->NewStringUTF(json.dump().c_str());
@@ -251,7 +267,7 @@ static std::vector<uint8_t> readFile(const char *path) {
 
 static void companion(int fd) {
 
-    std::vector<uint8_t> dexVector, jsonVector;
+    std::vector<uint8_t> dexVector, jsonVector, xmlVector;
 
     dexVector = readFile(CLASSES_DEX);
 
@@ -259,14 +275,19 @@ static void companion(int fd) {
 
     if (jsonVector.empty()) jsonVector = readFile(PIF_JSON_DEFAULT);
 
+    xmlVector = readFile(KEYBOX_FILE_PATH);
+
     long dexSize = dexVector.size();
     long jsonSize = jsonVector.size();
+    long xmlSize = xmlVector.size();
 
     xwrite(fd, &dexSize, sizeof(long));
     xwrite(fd, &jsonSize, sizeof(long));
+    xwrite(fd, &xmlSize, sizeof(long));
 
     xwrite(fd, dexVector.data(), dexSize);
     xwrite(fd, jsonVector.data(), jsonSize);
+    xwrite(fd, xmlVector.data(), xmlSize);
 }
 
 REGISTER_ZYGISK_MODULE(PlayIntegrityFix)
