@@ -1,10 +1,8 @@
 package es.chiteroman.playintegrityfix;
 
-import android.os.Build;
 import android.util.Log;
 
 import org.bouncycastle.asn1.x500.X500Name;
-import org.json.JSONObject;
 
 import java.lang.reflect.Field;
 import java.security.KeyStore;
@@ -18,7 +16,6 @@ import java.util.Map;
 import java.util.Objects;
 
 public final class EntryPoint {
-    private static final Map<Field, String> map = new HashMap<>();
     private static final Map<String, Keybox> certs = new HashMap<>();
     private static final Map<String, Certificate> store = new HashMap<>();
 
@@ -41,49 +38,6 @@ public final class EntryPoint {
 
         Security.removeProvider("AndroidKeyStore");
         Security.insertProviderAt(customProvider, 1);
-    }
-
-    public static void init(String json) {
-
-        try {
-            JSONObject jsonObject = new JSONObject(json);
-
-            jsonObject.keys().forEachRemaining(s -> {
-                try {
-                    String value = jsonObject.getString(s);
-                    Field field = getFieldByName(s);
-
-                    if (field == null) {
-                        LOG("Field " + s + " not found!");
-                        return;
-                    }
-
-                    map.put(field, value);
-                    LOG("Save " + field.getName() + " with value: " + value);
-
-                } catch (Throwable t) {
-                    LOG("Couldn't parse " + s + " key!");
-                }
-            });
-
-            spoofFields();
-
-        } catch (Throwable t) {
-            LOG("Error loading json file: " + t);
-        }
-    }
-
-    static void spoofFields() {
-        map.forEach((field, s) -> {
-            try {
-                if (s.equals(field.get(null))) return;
-                field.setAccessible(true);
-                field.set(null, s);
-                LOG("Set " + field.getName() + " field value: " + s);
-            } catch (Throwable t) {
-                LOG(t.toString());
-            }
-        });
     }
 
     public static void receiveXml(String data) {
@@ -115,24 +69,6 @@ public final class EntryPoint {
         } catch (Throwable t) {
             LOG("Error loading xml file: " + t);
         }
-    }
-
-    private static Field getFieldByName(String name) {
-
-        Field field;
-        try {
-            field = Build.class.getDeclaredField(name);
-        } catch (NoSuchFieldException e) {
-            try {
-                field = Build.VERSION.class.getDeclaredField(name);
-            } catch (NoSuchFieldException ex) {
-                return null;
-            }
-        }
-
-        field.setAccessible(true);
-
-        return field;
     }
 
     static void append(String a, Certificate c) {

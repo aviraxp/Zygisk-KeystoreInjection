@@ -23,7 +23,6 @@ android {
         packaging {
             jniLibs {
                 excludes += "**/liblog.so"
-                excludes += "**/libdobby.so"
             }
             resources.excludes.add("META-INF/versions/9/OSGI-INF/MANIFEST.MF")
         }
