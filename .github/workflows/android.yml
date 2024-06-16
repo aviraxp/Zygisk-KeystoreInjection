@@ -30,8 +30,8 @@ jobs:
     - name: Build with Gradle
       run: ./gradlew assembleRelease
       
-    - name: Upload PlayIntegrityFix.zip
+    - name: Upload KeystoreInjection.zip
       uses: actions/upload-artifact@v4
       with:
-        name: PlayIntegrityFix
+        name: KeystoreInjection
         path: module/*

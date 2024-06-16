@@ -13,5 +13,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "PlayIntegrityFix"
+rootProject.name = "KeystoreInjection"
 include(":app")

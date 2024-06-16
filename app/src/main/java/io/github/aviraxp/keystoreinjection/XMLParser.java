@@ -1,4 +1,4 @@
-package es.chiteroman.playintegrityfix;
+package io.github.aviraxp.keystoreinjection;
 
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;

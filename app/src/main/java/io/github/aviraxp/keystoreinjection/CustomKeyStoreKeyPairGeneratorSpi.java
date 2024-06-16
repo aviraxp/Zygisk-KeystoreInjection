@@ -1,4 +1,4 @@
-package es.chiteroman.playintegrityfix;
+package io.github.aviraxp.keystoreinjection;
 
 import android.annotation.SuppressLint;
 import android.os.Build;

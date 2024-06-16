@@ -1,7 +1,6 @@
-id=playintegrityfix
-name=Play Integrity Fix
-version=v15.9.9
-versionCode=15990
-author=chiteroman
-description=Universal modular fix for Play Integrity (and SafetyNet) on devices running Android 8-14.
-updateJson=https://raw.githubusercontent.com/chiteroman/PlayIntegrityFix/main/update.json
+id=keystoreinjection
+name=Keystore Injection
+version=v0.1.0
+versionCode=10
+author=aviraxp
+description=Generate a valid certificate chain by injecting custom Keystore provider.

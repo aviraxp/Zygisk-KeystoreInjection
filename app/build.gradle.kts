@@ -3,7 +3,7 @@ plugins {
 }
 
 android {
-    namespace = "es.chiteroman.playintegrityfix"
+    namespace = "io.github.aviraxp.keystoreinjection"
     compileSdk = 34
     ndkVersion = "26.3.11579264"
     buildToolsVersion = "34.0.0"
@@ -13,11 +13,11 @@ android {
     }
 
     defaultConfig {
-        applicationId = "es.chiteroman.playintegrityfix"
-        minSdk = 26
+        applicationId = "io.github.aviraxp.keystoreinjection"
+        minSdk = 34
         targetSdk = 34
-        versionCode = 15990
-        versionName = "v15.9.9"
+        versionCode = 10
+        versionName = "v0.1.0"
         multiDexEnabled = false
 
         packaging {
@@ -110,7 +110,7 @@ tasks.register("copyFiles") {
 tasks.register<Zip>("zip") {
     dependsOn("copyFiles")
 
-    archiveFileName.set("PlayIntegrityFix_${project.android.defaultConfig.versionName}.zip")
+    archiveFileName.set("KeystoreInjection_${project.android.defaultConfig.versionName}.zip")
     destinationDirectory.set(project.rootDir.resolve("out"))
 
     from(project.rootDir.resolve("module"))
