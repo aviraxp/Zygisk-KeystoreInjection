@@ -18,6 +18,7 @@ import java.security.cert.Certificate;
 public class CertUtils {
 
     public static Certificate parseCert(String cert) throws Throwable {
+        cert = cert.trim().replaceAll("(?m)^[\s&&[^\n]]+|[\s+&&[^\n]]+$", "");
         PemObject pemObject;
         try (PemReader reader = new PemReader(new StringReader(cert))) {
             pemObject = reader.readPemObject();
@@ -29,6 +30,7 @@ public class CertUtils {
     }
 
     public static X500Name parseCertSubject(String cert) throws Throwable {
+        cert = cert.trim().replaceAll("(?m)^[\s&&[^\n]]+|[\s+&&[^\n]]+$", "");
         PemObject pemObject;
         try (PemReader reader = new PemReader(new StringReader(cert))) {
             pemObject = reader.readPemObject();
@@ -40,6 +42,7 @@ public class CertUtils {
     }
 
     public static KeyPair parseKeyPair(String key) throws Throwable {
+        key = key.trim().replaceAll("(?m)^[\s&&[^\n]]+|[\s+&&[^\n]]+$", "");
         Object object;
         try (PEMParser parser = new PEMParser(new StringReader(key))) {
             object = parser.readObject();
@@ -51,6 +54,7 @@ public class CertUtils {
     }
 
     public static PrivateKey parsePrivateKey(String keyPair) throws RuntimeException {
+        keyPair = keyPair.trim().replaceAll("(?m)^[\s&&[^\n]]+|[\s+&&[^\n]]+$", "");
         try (PEMParser parser = new PEMParser(new StringReader(keyPair))) {
             PEMKeyPair pemKeyPair = (PEMKeyPair) parser.readObject();
             return new JcaPEMKeyConverter().getPrivateKey(pemKeyPair.getPrivateKeyInfo());
