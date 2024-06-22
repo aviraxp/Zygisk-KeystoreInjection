@@ -261,32 +261,38 @@ public class CustomKeyStoreKeyPairGeneratorSpi extends KeyPairGeneratorSpi {
         return result;
     }
 
-    // TODO hex3l: improve compatibility
     private int getEcCurve() {
         String name = ((ECGenParameterSpec) params.getAlgorithmParameterSpec()).getName();
         int res;
         switch (name) {
+            case "secp224r1" -> res = 0;
             case "secp256r1" -> res = 1;
-            default -> res = 0;
-        }
-        return res;
-    }
-
-    // TODO hex3l: improve compatibility, view commented code bottom of file
-    private int getKeySizeFromCurve() {
-        String name = ((ECGenParameterSpec) params.getAlgorithmParameterSpec()).getName();
-        int res;
-        switch (name) {
-            case "secp256r1" -> res = 256;
+            case "secp384r1" -> res = 2;
+            case "secp521r1" -> res = 3 ;
+            case "CURVE_25519" -> res = 4;
             default -> res = -1;
         }
         return res;
     }
 
-    // TODO hex3l: improve compatibility
+    private int getKeySizeFromCurve() {
+        String name = ((ECGenParameterSpec) params.getAlgorithmParameterSpec()).getName();
+        int res;
+        switch (name) {
+            case "secp224r1" -> res = 224;
+            case "secp256r1", "CURVE_25519" -> res = 256;
+            case "secp384r1" -> res = 384;
+            case "secp521r1" -> res = 521;
+            default -> res = -1;
+        }
+        return res;
+    }
+
     private int getAlgorithm() {
         return switch (requestedAlgo) {
+            case KeyProperties.KEY_ALGORITHM_RSA -> 1;
             case KeyProperties.KEY_ALGORITHM_EC -> 3;
+            // No support for other algorithms for now
             default -> 0;
         };
     }
@@ -308,7 +314,6 @@ public class CustomKeyStoreKeyPairGeneratorSpi extends KeyPairGeneratorSpi {
         kpg.initialize(spec);
         return kpg.generateKeyPair();
     }
-
 
     ASN1Sequence createApplicationId(String packageName, int version, byte[] signatureDigests) {
         ASN1Encodable[] packageInfoAsn1Array = new ASN1Encodable[2];
@@ -340,26 +345,3 @@ public class CustomKeyStoreKeyPairGeneratorSpi extends KeyPairGeneratorSpi {
         return value;
     }
 }
-
-/*
-        // Aliases for NIST P-224
-        SUPPORTED_EC_CURVE_NAME_TO_SIZE.put("p-224", 224);
-        SUPPORTED_EC_CURVE_NAME_TO_SIZE.put("secp224r1", 224);
-
-        // Aliases for NIST P-256
-        SUPPORTED_EC_CURVE_NAME_TO_SIZE.put("p-256", 256);
-        SUPPORTED_EC_CURVE_NAME_TO_SIZE.put("secp256r1", 256);
-        SUPPORTED_EC_CURVE_NAME_TO_SIZE.put("prime256v1", 256);
-        // Aliases for Curve 25519
-        SUPPORTED_EC_CURVE_NAME_TO_SIZE.put(CURVE_X_25519.toLowerCase(Locale.US), 256);
-        SUPPORTED_EC_CURVE_NAME_TO_SIZE.put(CURVE_ED_25519.toLowerCase(Locale.US), 256);
-
-        // Aliases for NIST P-384
-        SUPPORTED_EC_CURVE_NAME_TO_SIZE.put("p-384", 384);
-        SUPPORTED_EC_CURVE_NAME_TO_SIZE.put("secp384r1", 384);
-
-        // Aliases for NIST P-521
-        SUPPORTED_EC_CURVE_NAME_TO_SIZE.put("p-521", 521);
-        SUPPORTED_EC_CURVE_NAME_TO_SIZE.put("secp521r1", 521);
-
- */
