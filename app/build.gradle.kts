@@ -4,9 +4,9 @@ plugins {
 
 android {
     namespace = "io.github.aviraxp.keystoreinjection"
-    compileSdk = 34
+    compileSdk = 35
     ndkVersion = "26.3.11579264"
-    buildToolsVersion = "34.0.0"
+    buildToolsVersion = "35.0.0"
 
     buildFeatures {
         prefab = true
@@ -15,7 +15,7 @@ android {
     defaultConfig {
         applicationId = "io.github.aviraxp.keystoreinjection"
         minSdk = 34
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 10
         versionName = "v0.1.0"
         multiDexEnabled = false

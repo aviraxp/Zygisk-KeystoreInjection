@@ -156,12 +156,7 @@ public class CustomKeyStoreKeyPairGeneratorSpi extends KeyPairGeneratorSpi {
 
             ASN1Sequence rootOfTrustSeq = new DERSequence(rootOfTrustEncodables);
 
-            // TODO hex3l: validate that SIGN is the only required or create a parser
-            ASN1Integer[] purposesArray = {
-                    new ASN1Integer(2) //params.getPurposes()
-            };
-
-            var Apurpose = new DERSet(purposesArray);
+            var Apurpose = new DERSet(getPurposesArray());
             var Aalgorithm = new ASN1Integer(getAlgorithm());
             var AkeySize = new ASN1Integer(size);
             var Adigest = new DERSet(getDigests());
@@ -241,6 +236,26 @@ public class CustomKeyStoreKeyPairGeneratorSpi extends KeyPairGeneratorSpi {
         return new DEROctetString(keyDescriptionHackSeq);
     }
 
+    private ASN1Integer[] getPurposesArray() {
+        int purposes = params.getPurposes();
+        if (purposes == 0) {
+            return new ASN1Integer[]{new ASN1Integer(0)};
+        }
+        int count = Integer.bitCount(purposes);
+
+        ASN1Integer[] result = new ASN1Integer[count];
+        int index = 0;
+
+        for (int i = 0; purposes > 0; i++) {
+            if ((purposes & 1) == 1) {
+                result[index++] = new ASN1Integer(i);
+            }
+            purposes >>= 1;
+        }
+
+        return result;
+    }
+
     private ASN1Encodable[] getDigests() {
         String[] digests = params.getDigests();
         ASN1Encodable[] result = new ASN1Encodable[digests.length];
@@ -268,7 +283,7 @@ public class CustomKeyStoreKeyPairGeneratorSpi extends KeyPairGeneratorSpi {
             case "secp224r1" -> res = 0;
             case "secp256r1" -> res = 1;
             case "secp384r1" -> res = 2;
-            case "secp521r1" -> res = 3 ;
+            case "secp521r1" -> res = 3;
             case "CURVE_25519" -> res = 4;
             default -> res = -1;
         }
