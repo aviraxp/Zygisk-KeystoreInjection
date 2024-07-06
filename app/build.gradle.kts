@@ -14,7 +14,7 @@ android {
 
     defaultConfig {
         applicationId = "io.github.aviraxp.keystoreinjection"
-        minSdk = 34
+        minSdk = 30
         targetSdk = 35
         versionCode = 10
         versionName = "v0.1.0"
