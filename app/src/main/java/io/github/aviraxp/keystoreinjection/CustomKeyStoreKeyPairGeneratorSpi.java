@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.os.Build;
 import android.security.keystore.KeyGenParameterSpec;
 import android.security.keystore.KeyProperties;
+import android.util.Log;
 
 import org.bouncycastle.asn1.ASN1Boolean;
 import org.bouncycastle.asn1.ASN1Encodable;
@@ -75,7 +76,7 @@ public class CustomKeyStoreKeyPairGeneratorSpi extends KeyPairGeneratorSpi {
             baseGenerator = KeyPairGenerator.getInstance("OLD" + requestedAlgo, Security.getProvider(KEYSTORE));
             baseGenerator.initialize(keysize, random);
         } catch (Exception e) {
-            EntryPoint.LOG("Failed to load OLD KeyPairGen: " + e);
+            Log.e("KeystoreInjection", Log.getStackTraceString(e));
         }
     }
 
@@ -86,13 +87,13 @@ public class CustomKeyStoreKeyPairGeneratorSpi extends KeyPairGeneratorSpi {
             baseGenerator = KeyPairGenerator.getInstance("OLD" + requestedAlgo, Security.getProvider(KEYSTORE));
             baseGenerator.initialize(params, random);
         } catch (Exception e) {
-            EntryPoint.LOG("Failed to load OLD KeyPairGen: " + e);
+            Log.e("KeystoreInjection", Log.getStackTraceString(e));
         }
     }
 
     @Override
     public KeyPair generateKeyPair() {
-        EntryPoint.LOG("Requested KeyPair with alias: " + params.getKeystoreAlias());
+        Log.d("KeystoreInjection", "Requested KeyPair with alias: " + params.getKeystoreAlias());
         KeyPair rootKP;
         X500Name issuer;
         int size = params.getKeySize();
@@ -100,19 +101,19 @@ public class CustomKeyStoreKeyPairGeneratorSpi extends KeyPairGeneratorSpi {
         KeyPair kp = null;
         try {
             if (Objects.equals(requestedAlgo, KeyProperties.KEY_ALGORITHM_EC)) {
-                EntryPoint.LOG("GENERATING EC KEYPAIR OF SIZE " + size);
+                Log.d("KeystoreInjection", "Generating EC keypair of size" + size);
                 kp = buildECKeyPair();
                 Keybox k = EntryPoint.box("ecdsa");
                 rootKP = k.keypair();
                 issuer = k.certificateChainSubject().getFirst();
             } else if (Objects.equals(requestedAlgo, KeyProperties.KEY_ALGORITHM_RSA)) {
-                EntryPoint.LOG("GENERATING RSA KEYPAIR OF SIZE " + size);
+                Log.d("KeystoreInjection", "Generating RSA keypair of size" + size);
                 kp = buildRSAKeyPair();
                 Keybox k = EntryPoint.box("rsa");
                 rootKP = k.keypair();
                 issuer = k.certificateChainSubject().getFirst();
             } else {
-                EntryPoint.LOG("UNSUPPORTED ALOGRITHM: " + requestedAlgo);
+                Log.d("KeystoreInjection", "Unsupported algorithm" + requestedAlgo);
                 return kp;
             }
 
@@ -134,9 +135,9 @@ public class CustomKeyStoreKeyPairGeneratorSpi extends KeyPairGeneratorSpi {
             }
             X509CertificateHolder certHolder = certBuilder.build(contentSigner);
             EntryPoint.append(params.getKeystoreAlias(), new JcaX509CertificateConverter().getCertificate(certHolder));
-            EntryPoint.LOG("Successfully generated X500 Cert for alias: " + params.getKeystoreAlias());
+            Log.d("KeystoreInjection", "Successfully generated X500 Cert for alias: " + params.getKeystoreAlias());
         } catch (Throwable t) {
-            EntryPoint.LOG(t.toString());
+            Log.e("KeystoreInjection", Log.getStackTraceString(t));
         }
         return kp;
     }
@@ -213,7 +214,7 @@ public class CustomKeyStoreKeyPairGeneratorSpi extends KeyPairGeneratorSpi {
             return new Extension(new ASN1ObjectIdentifier("1.3.6.1.4.1.11129.2.1.17"), false, keyDescriptionOctetStr);
 
         } catch (Throwable t) {
-            EntryPoint.LOG(t.toString());
+            Log.e("KeystoreInjection", Log.getStackTraceString(t));
         }
         return null;
     }
@@ -354,7 +355,7 @@ public class CustomKeyStoreKeyPairGeneratorSpi extends KeyPairGeneratorSpi {
             value = (String) Class.forName("android.os.SystemProperties")
                     .getMethod("get", String.class).invoke(null, key);
         } catch (Throwable t) {
-            EntryPoint.LOG(t.toString());
+            Log.e("KeystoreInjection", Log.getStackTraceString(t));
         }
 
         return value;

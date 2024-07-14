@@ -28,10 +28,10 @@ public final class CustomKeyStoreSpi extends KeyStoreSpi {
 
     @Override
     public Certificate[] engineGetCertificateChain(String alias) {
-        EntryPoint.LOG("GetChain Certificate alias requested: " + alias);
+        Log.d("KeystoreInjection", "GetChain Certificate alias requested: " + alias);
         Certificate leaf = EntryPoint.retrieve(alias);
         if (leaf != null) {
-            EntryPoint.LOG("GetChain alias certificates: " + leaf.getType() + " " + leaf.hashCode() + " ");
+            Log.d("KeystoreInjection", "GetChain alias certificates: " + leaf.getType() + " " + leaf.hashCode() + " ");
             LinkedList<Certificate> certificateList = new LinkedList<>();
 
             try {
@@ -41,7 +41,7 @@ public final class CustomKeyStoreSpi extends KeyStoreSpi {
                     certificateList.addAll((Objects.requireNonNull(EntryPoint.box("rsa"))).certificateChain());
                 }
             } catch (Throwable t) {
-                Log.e("GetChain unable to ", t.toString());
+                Log.e("KeystoreInjection", Log.getStackTraceString(t));
             }
             certificateList.addFirst(leaf);
 

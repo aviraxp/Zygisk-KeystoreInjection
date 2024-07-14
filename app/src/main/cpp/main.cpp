@@ -6,7 +6,7 @@
 #include <unistd.h>
 #include "zygisk.hpp"
 
-#define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, "PIF", __VA_ARGS__)
+#define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, "KeystoreInjection", __VA_ARGS__)
 
 #define CLASSES_DEX "/data/adb/modules/keystoreinjection/classes.dex"
 #define APPLIST_FILE_PATH "/data/adb/keystoreinjection/targetlist"

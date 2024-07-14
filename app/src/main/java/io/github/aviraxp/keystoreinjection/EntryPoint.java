@@ -29,7 +29,7 @@ public final class EntryPoint {
             CustomKeyStoreSpi.keyStoreSpi = (KeyStoreSpi) keyStoreSpi.get(keyStore);
 
         } catch (Throwable t) {
-            LOG("Couldn't get keyStoreSpi: " + t);
+            Log.e("KeystoreInjection", Log.getStackTraceString(t));
         }
 
         Provider provider = Security.getProvider("AndroidKeyStore");
@@ -58,7 +58,7 @@ public final class EntryPoint {
                 LinkedList<X500Name> certificateChainHolders = new LinkedList<>();
 
                 for (int j = 0; j < numberOfCertificates; j++) {
-                    Map<String,String> certData= xmlParser.obtainPath(
+                    Map<String, String> certData = xmlParser.obtainPath(
                             "AndroidAttestation.Keybox.Key[" + i + "].CertificateChain.Certificate[" + j + "]");
                     certificateChain.add(CertUtils.parseCert(certData.get("text")));
                     certificateChainHolders.add(CertUtils.parseCertSubject(certData.get("text")));
@@ -67,7 +67,7 @@ public final class EntryPoint {
                         CertUtils.parsePrivateKey(privateKey), certificateChain, certificateChainHolders));
             }
         } catch (Throwable t) {
-            LOG("Error loading xml file: " + t);
+            Log.e("KeystoreInjection", Log.getStackTraceString(t));
         }
     }
 
@@ -81,9 +81,5 @@ public final class EntryPoint {
 
     static Keybox box(String type) {
         return certs.get(type);
-    }
-
-    static void LOG(String msg) {
-        Log.d("KeystoreInjection", msg);
     }
 }

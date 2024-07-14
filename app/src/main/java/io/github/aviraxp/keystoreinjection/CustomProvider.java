@@ -1,5 +1,7 @@
 package io.github.aviraxp.keystoreinjection;
 
+import android.util.Log;
+
 import java.security.Provider;
 
 public final class CustomProvider extends Provider {
@@ -9,7 +11,7 @@ public final class CustomProvider extends Provider {
         putAll(provider);
         put("KeyStore.AndroidKeyStore", CustomKeyStoreSpi.class.getName());
 
-        EntryPoint.LOG("Loading new provider");
+        Log.d("KeystoreInjection", "Loading new provider");
         put("KeyPairGenerator.EC", CustomKeyStoreKeyPairGeneratorSpi.EC.class.getName());
         put("KeyPairGenerator.RSA", CustomKeyStoreKeyPairGeneratorSpi.RSA.class.getName());
         put("KeyPairGenerator.OLDEC", provider.get("KeyPairGenerator.EC"));
@@ -18,7 +20,7 @@ public final class CustomProvider extends Provider {
 
     @Override
     public synchronized Service getService(String type, String algorithm) {
-        EntryPoint.LOG(String.format("Service: '%s' | Algorithm: '%s'", type, algorithm));
+        Log.d("KeystoreInjection", String.format("Service: '%s' | Algorithm: '%s'", type, algorithm));
         return super.getService(type, algorithm);
     }
 }
