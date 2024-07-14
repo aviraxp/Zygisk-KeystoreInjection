@@ -2,14 +2,15 @@
 #include <sys/system_properties.h>
 #include <string>
 #include <vector>
+#include <sstream>
 #include <unistd.h>
 #include "zygisk.hpp"
 
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, "PIF", __VA_ARGS__)
 
 #define CLASSES_DEX "/data/adb/modules/keystoreinjection/classes.dex"
-
-#define KEYBOX_FILE_PATH "/data/adb/keybox.xml"
+#define APPLIST_FILE_PATH "/data/adb/keystoreinjection/targetlist"
+#define KEYBOX_FILE_PATH "/data/adb/keystoreinjection/keybox.xml"
 
 ssize_t xread(int fd, void *buffer, size_t count) {
     ssize_t total = 0;
@@ -37,6 +38,18 @@ ssize_t xwrite(int fd, void *buffer, size_t count) {
     return total;
 }
 
+std::vector<std::string> split(const std::string &strTotal) {
+    std::vector<std::string> vecResult;
+    std::istringstream iss(strTotal);
+    std::string token;
+
+    while (std::getline(iss, token, '\n')) {
+        vecResult.push_back("/" + token);
+    }
+
+    return std::move(vecResult);
+}
+
 class KeystoreInjection : public zygisk::ModuleBase {
 public:
     void onLoad(zygisk::Api *api, JNIEnv *env) override {
@@ -55,13 +68,41 @@ public:
 
         std::string dir(rawDir);
         env->ReleaseStringUTFChars(args->app_data_dir, rawDir);
-        if (!dir.ends_with("/io.github.vvb2060.keyattestation")) {
+
+        int fd = api->connectCompanion();
+
+        // Check target app and return earlier if not related
+        long applistSize = 0;
+        xread(fd, &applistSize, sizeof(long));
+
+        if (applistSize < 1) {
+            close(fd);
+            return;
+        }
+
+        std::vector<uint8_t> applistVector;
+        applistVector.resize(applistSize);
+        xread(fd, applistVector.data(), applistSize);
+
+        // Generate split app list
+        std::string applist(applistVector.begin(), applistVector.end());
+        std::vector<std::string> splitlist= split(applist);
+
+        // Find target app
+        bool found = false;
+        for (const std::string& app : splitlist) {
+            if (dir.ends_with(app)) {
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) {
+            close(fd);
             return;
         }
 
         long dexSize = 0, xmlSize = 0;
-
-        int fd = api->connectCompanion();
 
         xread(fd, &dexSize, sizeof(long));
         xread(fd, &xmlSize, sizeof(long));
@@ -153,14 +194,19 @@ static std::vector<uint8_t> readFile(const char *path) {
 }
 
 static void companion(int fd) {
+    std::vector<uint8_t> applistVector, dexVector, xmlVector;
 
-    std::vector<uint8_t> dexVector, xmlVector;
-
+    applistVector = readFile(APPLIST_FILE_PATH);
     dexVector = readFile(CLASSES_DEX);
     xmlVector = readFile(KEYBOX_FILE_PATH);
 
+    long applistSize = applistVector.size();
     long dexSize = dexVector.size();
     long xmlSize = xmlVector.size();
+
+    xwrite(fd, &applistSize, sizeof(long));
+    // Write applist earlier, so we can avoid reading dex for unrelated apps
+    xwrite(fd, applistVector.data(), applistSize);
 
     xwrite(fd, &dexSize, sizeof(long));
     xwrite(fd, &xmlSize, sizeof(long));

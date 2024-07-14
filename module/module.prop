@@ -3,4 +3,4 @@ name=Keystore Injection
 version=v0.1.0
 versionCode=10
 author=aviraxp
-description=Generate a valid certificate chain by injecting custom Keystore provider.
+description=Generate a valid certificate chain from scratch by injecting custom Keystore provider.
