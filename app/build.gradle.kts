@@ -1,6 +1,12 @@
+import android.databinding.tool.ext.capitalizeUS
+
 plugins {
     id("com.android.application")
 }
+
+val verCode: Int by rootProject.extra
+val verName: String by rootProject.extra
+val commitHash: String by rootProject.extra
 
 android {
     namespace = "io.github.aviraxp.keystoreinjection"
@@ -16,28 +22,21 @@ android {
         applicationId = "io.github.aviraxp.keystoreinjection"
         minSdk = 30
         targetSdk = 35
-        versionCode = 10
-        versionName = "v0.1.0"
-        multiDexEnabled = false
+        versionCode = verCode
+        versionName = verName
 
         packaging {
-            jniLibs {
-                excludes += "**/liblog.so"
-            }
             resources.excludes.add("META-INF/versions/9/OSGI-INF/MANIFEST.MF")
         }
 
         externalNativeBuild {
             cmake {
                 arguments += "-DANDROID_STL=none"
-                arguments += "-DCMAKE_BUILD_TYPE=MinSizeRel"
-                arguments += "-DPlugin.Android.BionicLinkerUtil=ON"
-
-                cppFlags += "-std=c++20"
                 cppFlags += "-fno-exceptions"
                 cppFlags += "-fno-rtti"
                 cppFlags += "-fvisibility=hidden"
                 cppFlags += "-fvisibility-inlines-hidden"
+                cppFlags += "-std=c++20"
             }
         }
     }
@@ -50,7 +49,10 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             multiDexEnabled = false
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
 
@@ -72,50 +74,51 @@ dependencies {
     implementation("org.bouncycastle:bcpkix-jdk18on:1.78.1")
 }
 
-tasks.register("updateModuleProp") {
-    doLast {
-        val versionName = project.android.defaultConfig.versionName
-        val versionCode = project.android.defaultConfig.versionCode
+androidComponents.onVariants { variant ->
+    afterEvaluate {
+        val variantLowered = variant.name.lowercase()
+        val variantCapped = variant.name.capitalizeUS()
+        tasks.register("updateModuleProp$variantCapped") {
+            group = "Zygisk"
+            dependsOn("assemble$variantCapped")
+            doLast {
+                val versionName = project.android.defaultConfig.versionName
+                val versionCode = project.android.defaultConfig.versionCode
+                val modulePropFile = project.rootDir.resolve("module/module.prop")
+                var content = modulePropFile.readText()
+                content = content.replace(Regex("version=.*"), "version=$versionName")
+                content = content.replace(Regex("versionCode=.*"), "versionCode=$versionCode")
+                modulePropFile.writeText(content)
+            }
+        }
 
-        val modulePropFile = project.rootDir.resolve("module/module.prop")
+        tasks.register("copyFiles$variantCapped") {
+            group = "Zygisk"
+            dependsOn("updateModuleProp$variantCapped")
+            doLast {
+                val moduleFolder = project.rootDir.resolve("module")
+                val dexFile =
+                    if (variantLowered == "release")
+                        project.layout.buildDirectory.get().asFile.resolve("intermediates/dex/$variantLowered/minify${variantCapped}WithR8/classes.dex")
+                    else
+                        project.layout.buildDirectory.get().asFile.resolve("intermediates/dex/$variantLowered/mergeDex$variantCapped/classes.dex")
+                val soDir =
+                    project.layout.buildDirectory.get().asFile.resolve("intermediates/stripped_native_libs/$variantLowered/strip${variantCapped}DebugSymbols/out/lib")
+                dexFile.copyTo(moduleFolder.resolve("classes.dex"), overwrite = true)
+                soDir.walk().filter { it.isFile && it.extension == "so" }.forEach { soFile ->
+                    val abiFolder = soFile.parentFile.name
+                    val destination = moduleFolder.resolve("zygisk/$abiFolder.so")
+                    soFile.copyTo(destination, overwrite = true)
+                }
+            }
+        }
 
-        var content = modulePropFile.readText()
-
-        content = content.replace(Regex("version=.*"), "version=$versionName")
-        content = content.replace(Regex("versionCode=.*"), "versionCode=$versionCode")
-
-        modulePropFile.writeText(content)
-    }
-}
-
-
-tasks.register("copyFiles") {
-    dependsOn("updateModuleProp")
-
-    doLast {
-        val moduleFolder = project.rootDir.resolve("module")
-        val dexFile = project.layout.buildDirectory.get().asFile.resolve("intermediates/dex/release/minifyReleaseWithR8/classes.dex")
-        val soDir = project.layout.buildDirectory.get().asFile.resolve("intermediates/stripped_native_libs/release/stripReleaseDebugSymbols/out/lib")
-
-        dexFile.copyTo(moduleFolder.resolve("classes.dex"), overwrite = true)
-
-        soDir.walk().filter { it.isFile && it.extension == "so" }.forEach { soFile ->
-            val abiFolder = soFile.parentFile.name
-            val destination = moduleFolder.resolve("zygisk/$abiFolder.so")
-            soFile.copyTo(destination, overwrite = true)
+        tasks.register<Zip>("zip$variantCapped") {
+            group = "Zygisk"
+            dependsOn("copyFiles$variantCapped")
+            archiveFileName.set("KeystoreInjection-${project.android.defaultConfig.versionName}-${project.android.defaultConfig.versionCode}-$commitHash-${variantLowered}.zip")
+            destinationDirectory.set(project.rootDir.resolve("out"))
+            from(project.rootDir.resolve("module"))
         }
     }
-}
-
-tasks.register<Zip>("zip") {
-    dependsOn("copyFiles")
-
-    archiveFileName.set("KeystoreInjection_${project.android.defaultConfig.versionName}.zip")
-    destinationDirectory.set(project.rootDir.resolve("out"))
-
-    from(project.rootDir.resolve("module"))
-}
-
-afterEvaluate {
-    tasks["assembleRelease"].finalizedBy("updateModuleProp", "copyFiles", "zip")
 }

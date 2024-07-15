@@ -18,7 +18,7 @@ jobs:
         submodules: "recursive"
         fetch-depth: 0
 
-    - name: set up JDK 17
+    - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
         distribution: 'temurin'
@@ -28,10 +28,27 @@ jobs:
       run: chmod +x gradlew
       
     - name: Build with Gradle
-      run: ./gradlew assembleRelease
-      
-    - name: Upload KeystoreInjection.zip
+      run: |
+        ./gradlew zipRelease
+        ./gradlew zipDebug
+
+    - name: Prepare artifact
+      if: success()
+      id: prepareArtifact
+      run: |
+        releaseName=`ls out/KeystoreInjection-v*-release.zip | awk -F '(/|.zip)' '{print $2}'` && echo "releaseName=$releaseName" >> $GITHUB_OUTPUT
+        debugName=`ls out/KeystoreInjection-v*-debug.zip | awk -F '(/|.zip)' '{print $2}'` && echo "debugName=$debugName" >> $GITHUB_OUTPUT
+        unzip out/KeystoreInjection-v*-release.zip -d module-release
+        unzip out/KeystoreInjection-v*-debug.zip -d module-debug
+
+    - name: Upload release
       uses: actions/upload-artifact@v4
       with:
-        name: KeystoreInjection
-        path: module/*
+        name: ${{ steps.prepareArtifact.outputs.releaseName }}
+        path: "./module-release/*"
+
+    - name: Upload debug
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ steps.prepareArtifact.outputs.debugName }}
+        path: "./module-debug/*"
